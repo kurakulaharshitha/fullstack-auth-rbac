@@ -1,0 +1,77 @@
+package com.example.authsystem.service;
+
+import com.example.authsystem.dto.LoginRequest;
+import com.example.authsystem.dto.RegisterRequest;
+import com.example.authsystem.entity.User;
+import com.example.authsystem.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AuthService {
+
+@Autowired
+private UserRepository userRepository;
+
+@Autowired
+private PasswordEncoder passwordEncoder;
+
+@Autowired
+private JwtService jwtService;
+
+// REGISTER USER
+public String register(RegisterRequest request) {
+
+// check email already exists
+if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+return "Email already exists!";
+}
+
+// create user object
+User user = new User();
+
+user.setName(request.getName());
+
+user.setEmail(request.getEmail());
+
+// encode password
+user.setPassword(
+passwordEncoder.encode(request.getPassword())
+);
+
+// save user
+userRepository.save(user);
+
+return "User Registered Successfully!";
+}
+
+// LOGIN USER
+public String login(LoginRequest request) {
+
+// find user by email
+User user = userRepository.findByEmail(request.getEmail())
+.orElse(null);
+
+// user not found
+if (user == null) {
+return "User not found!";
+}
+
+// compare password
+boolean matches = passwordEncoder.matches(
+request.getPassword(),
+user.getPassword()
+);
+
+// if password correct
+if (matches) {
+
+// generate JWT token
+return jwtService.generateToken(user.getEmail());
+}
+
+// wrong password
+return "Invalid Password!";
+}
+}
